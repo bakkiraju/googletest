@@ -215,6 +215,11 @@ GTEST_DEFINE_bool_(
     "Run disabled tests too, in addition to the tests normally being run.");
 
 GTEST_DEFINE_bool_(
+    show_skipped,
+    internal::BoolFromGTestEnv("show_skipped", false),
+    "Show output of skipped tests in addition to the tests normally being run.");
+
+GTEST_DEFINE_bool_(
     break_on_failure,
     internal::BoolFromGTestEnv("break_on_failure", false),
     "True iff a failed assertion should be a debugger break-point.");
@@ -269,6 +274,8 @@ GTEST_DEFINE_string_(
     "within that directory, with file-names based on the test "
     "executable's name and, if necessary, made unique by adding "
     "digits.");
+
+
 
 GTEST_DEFINE_bool_(
     print_time,
@@ -3196,7 +3203,7 @@ void PrettyUnitTestResultPrinter::OnTestPartResult(
 void PrettyUnitTestResultPrinter::OnTestEnd(const TestInfo& test_info) {
   if (test_info.result()->Passed()) {
     ColoredPrintf(COLOR_GREEN, "[       OK ] ");
-  } else if (test_info.result()->Skipped()) {
+  } else if (test_info.result()->Skipped() && GTEST_FLAG(show_skipped)) {
     ColoredPrintf(COLOR_GREEN, "[  SKIPPED ] ");
   } else {
     ColoredPrintf(COLOR_RED, "[  FAILED  ] ");
@@ -3259,6 +3266,8 @@ void PrettyUnitTestResultPrinter::PrintFailedTests(const UnitTest& unit_test) {
 
 // Internal helper for printing the list of skipped tests.
 void PrettyUnitTestResultPrinter::PrintSkippedTests(const UnitTest& unit_test) {
+  if (not GTEST_FLAG(show_skipped)) return;
+
   const int skipped_test_count = unit_test.skipped_test_count();
   if (skipped_test_count == 0) {
     return;
@@ -3296,7 +3305,7 @@ void PrettyUnitTestResultPrinter::OnTestIterationEnd(const UnitTest& unit_test,
   printf("%s.\n", FormatTestCount(unit_test.successful_test_count()).c_str());
 
   const int skipped_test_count = unit_test.skipped_test_count();
-  if (skipped_test_count > 0) {
+  if (skipped_test_count > 0 && GTEST_FLAG(show_skipped)) {
     ColoredPrintf(COLOR_GREEN, "[  SKIPPED ] ");
     printf("%s, listed below:\n", FormatTestCount(skipped_test_count).c_str());
     PrintSkippedTests(unit_test);
@@ -5805,6 +5814,8 @@ static const char kColorEncodedHelpMessage[] =
 "Test Output:\n"
 "  @G--" GTEST_FLAG_PREFIX_ "color=@Y(@Gyes@Y|@Gno@Y|@Gauto@Y)@D\n"
 "      Enable/disable colored output. The default is @Gauto@D.\n"
+"  @G--" GTEST_FLAG_PREFIX_ "show_skipped=@Y(@Gyes@Y|@Gno@Y)@D\n"
+"      Show/Hide skipped tests in output. The default is @Gno@D.\n"
 "  -@G-" GTEST_FLAG_PREFIX_ "print_time=0@D\n"
 "      Don't print the elapsed time of each test.\n"
 "  @G--" GTEST_FLAG_PREFIX_ "output=@Y(@Gjson@Y|@Gxml@Y)[@G:@YDIRECTORY_PATH@G"
@@ -5870,6 +5881,7 @@ static bool ParseGoogleTestFlag(const char* const arg) {
                       &GTEST_FLAG(stream_result_to)) ||
       ParseBoolFlag(arg, kThrowOnFailureFlag,
                     &GTEST_FLAG(throw_on_failure));
+      ParseBoolFlag(arg, kShowSkippedFlag, &GTEST_FLAG(show_skipped));
 }
 
 #if GTEST_USE_OWN_FLAGFILE_FLAG_

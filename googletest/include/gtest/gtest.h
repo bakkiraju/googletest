@@ -102,6 +102,11 @@ namespace testing {
 // This flag temporary enables the disabled tests.
 GTEST_DECLARE_bool_(also_run_disabled_tests);
 
+
+// This flag shows/hides the skipped tests from output
+GTEST_DECLARE_bool_(show_skipped);
+
+
 // This flag brings the debugger on an assertion failure.
 GTEST_DECLARE_bool_(break_on_failure);
 
