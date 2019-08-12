@@ -95,7 +95,7 @@ const char kStackTraceDepthFlag[] = "stack_trace_depth";
 const char kStreamResultToFlag[] = "stream_result_to";
 const char kThrowOnFailureFlag[] = "throw_on_failure";
 const char kFlagfileFlag[] = "flagfile";
-const char kShowSkippedFlag[] = "show_skipped";
+const char kShowSkipsFlag[] = "show_skips";
 
 // A valid random seed must be in [1, kMaxRandomSeed].
 const int kMaxRandomSeed = 99999;
@@ -176,11 +176,12 @@ class GTestFlagSaver {
     stack_trace_depth_ = GTEST_FLAG(stack_trace_depth);
     stream_result_to_ = GTEST_FLAG(stream_result_to);
     throw_on_failure_ = GTEST_FLAG(throw_on_failure);
-    show_skipped_ = GTEST_FLAG(show_skipped);
+    show_skips_ = GTEST_FLAG(show_skips);
   }
 
   // The d'tor is not virtual.  DO NOT INHERIT FROM THIS CLASS.
   ~GTestFlagSaver() {
+    GTEST_FLAG(show_skips) = show_skips_;
     GTEST_FLAG(also_run_disabled_tests) = also_run_disabled_tests_;
     GTEST_FLAG(break_on_failure) = break_on_failure_;
     GTEST_FLAG(catch_exceptions) = catch_exceptions_;
@@ -199,7 +200,6 @@ class GTestFlagSaver {
     GTEST_FLAG(stack_trace_depth) = stack_trace_depth_;
     GTEST_FLAG(stream_result_to) = stream_result_to_;
     GTEST_FLAG(throw_on_failure) = throw_on_failure_;
-    GTEST_FLAG(show_skipped) = show_skipped_;
   }
 
  private:
@@ -222,7 +222,7 @@ class GTestFlagSaver {
   internal::Int32 stack_trace_depth_;
   std::string stream_result_to_;
   bool throw_on_failure_;
-  bool show_skipped_;
+  bool show_skips_;
 } GTEST_ATTRIBUTE_UNUSED_;
 
 // Converts a Unicode code point to a narrow string in UTF-8 encoding.

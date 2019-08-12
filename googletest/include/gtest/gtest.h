@@ -102,17 +102,15 @@ namespace testing {
 // This flag temporary enables the disabled tests.
 GTEST_DECLARE_bool_(also_run_disabled_tests);
 
-
-// This flag shows/hides the skipped tests from output
-GTEST_DECLARE_bool_(show_skipped);
-
-
 // This flag brings the debugger on an assertion failure.
 GTEST_DECLARE_bool_(break_on_failure);
 
 // This flag controls whether Google Test catches all test-thrown exceptions
 // and logs them as failures.
 GTEST_DECLARE_bool_(catch_exceptions);
+
+// This flag shows/hides the skipped tests from output
+GTEST_DECLARE_bool_(show_skips);
 
 // This flag enables using colors in terminal output. Available values are
 // "yes" to enable colors, "no" (disable colors), or "auto" (the default)
@@ -907,6 +905,10 @@ class GTEST_API_ TestSuite {
   // execution of SetUpTestSuite and TearDownTestSuite.
   const TestResult& ad_hoc_test_result() const { return ad_hoc_test_result_; }
 
+  void set_skipped(bool skip) { skipped_ = skip; }
+
+  bool isSkipped() {return skipped_;}
+
  private:
   friend class Test;
   friend class internal::UnitTestImpl;
@@ -1017,6 +1019,8 @@ class GTEST_API_ TestSuite {
   internal::TearDownTestSuiteFunc tear_down_tc_;
   // True iff any test in this test suite should run.
   bool should_run_;
+  // True iff complete testsuite should be skipped
+  bool skipped_;
   // Elapsed time, in milliseconds.
   TimeInMillis elapsed_time_;
   // Holds test properties recorded during execution of SetUpTestSuite and

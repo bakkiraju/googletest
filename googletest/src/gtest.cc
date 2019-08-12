@@ -215,8 +215,8 @@ GTEST_DEFINE_bool_(
     "Run disabled tests too, in addition to the tests normally being run.");
 
 GTEST_DEFINE_bool_(
-    show_skipped,
-    internal::BoolFromGTestEnv("show_skipped", false),
+    show_skips,
+    internal::BoolFromGTestEnv("show_skips", false),
     "Show output of skipped tests in addition to the tests normally being run.");
 
 GTEST_DEFINE_bool_(
@@ -2787,8 +2787,10 @@ void TestSuite::AddTestInfo(TestInfo* test_info) {
 
 // Runs every test in this TestSuite.
 void TestSuite::Run() {
-  if (!should_run_) return;
+  if (skipped_) {return;}
 
+  if (!should_run_) return;
+  
   internal::UnitTestImpl* const impl = internal::GetUnitTestImpl();
   impl->set_current_test_suite(this);
 
@@ -3150,9 +3152,11 @@ void PrettyUnitTestResultPrinter::OnTestIterationStart(
   }
 
   ColoredPrintf(COLOR_GREEN,  "[==========] ");
-  printf("Running %s from %s.\n",
+  printf("Available %s from %s.\n",
          FormatTestCount(unit_test.test_to_run_count()).c_str(),
          FormatTestSuiteCount(unit_test.test_suite_to_run_count()).c_str());
+  ColoredPrintf(COLOR_YELLOW,  "[==========] ");
+  printf("Note: Suites not included in profile json skip and do not show in output by default (use --gtest_show_skips to see skips).\n");  
   fflush(stdout);
 }
 
@@ -3203,7 +3207,7 @@ void PrettyUnitTestResultPrinter::OnTestPartResult(
 void PrettyUnitTestResultPrinter::OnTestEnd(const TestInfo& test_info) {
   if (test_info.result()->Passed()) {
     ColoredPrintf(COLOR_GREEN, "[       OK ] ");
-  } else if (test_info.result()->Skipped() && GTEST_FLAG(show_skipped)) {
+  } else if (test_info.result()->Skipped() && GTEST_FLAG(show_skips)) {
     ColoredPrintf(COLOR_GREEN, "[  SKIPPED ] ");
   } else {
     ColoredPrintf(COLOR_RED, "[  FAILED  ] ");
@@ -3266,7 +3270,7 @@ void PrettyUnitTestResultPrinter::PrintFailedTests(const UnitTest& unit_test) {
 
 // Internal helper for printing the list of skipped tests.
 void PrettyUnitTestResultPrinter::PrintSkippedTests(const UnitTest& unit_test) {
-  if (not GTEST_FLAG(show_skipped)) return;
+  if (not GTEST_FLAG(show_skips)) {printf("Bot prinitng skipped tests\n"); return;}
 
   const int skipped_test_count = unit_test.skipped_test_count();
   if (skipped_test_count == 0) {
@@ -3305,7 +3309,7 @@ void PrettyUnitTestResultPrinter::OnTestIterationEnd(const UnitTest& unit_test,
   printf("%s.\n", FormatTestCount(unit_test.successful_test_count()).c_str());
 
   const int skipped_test_count = unit_test.skipped_test_count();
-  if (skipped_test_count > 0 && GTEST_FLAG(show_skipped)) {
+  if (skipped_test_count > 0 && GTEST_FLAG(show_skips)) {
     ColoredPrintf(COLOR_GREEN, "[  SKIPPED ] ");
     printf("%s, listed below:\n", FormatTestCount(skipped_test_count).c_str());
     PrintSkippedTests(unit_test);
@@ -5414,6 +5418,7 @@ int UnitTestImpl::FilterTests(ReactionToSharding shard_tests) {
   int num_runnable_tests = 0;
   int num_selected_tests = 0;
   for (auto* test_suite : test_suites_) {
+    if (test_suite->isSkipped()) continue;
     const std::string& test_suite_name = test_suite->name();
     test_suite->set_should_run(false);
 
@@ -5814,8 +5819,8 @@ static const char kColorEncodedHelpMessage[] =
 "Test Output:\n"
 "  @G--" GTEST_FLAG_PREFIX_ "color=@Y(@Gyes@Y|@Gno@Y|@Gauto@Y)@D\n"
 "      Enable/disable colored output. The default is @Gauto@D.\n"
-"  @G--" GTEST_FLAG_PREFIX_ "show_skipped=@Y(@Gyes@Y|@Gno@Y)@D\n"
-"      Show/Hide skipped tests in output. The default is @Gno@D.\n"
+"  @G--" GTEST_FLAG_PREFIX_ "show_skips\n"
+"      Show/Hide skipped tests in output. Skipped tests are hidden by default.\n"
 "  -@G-" GTEST_FLAG_PREFIX_ "print_time=0@D\n"
 "      Don't print the elapsed time of each test.\n"
 "  @G--" GTEST_FLAG_PREFIX_ "output=@Y(@Gjson@Y|@Gxml@Y)[@G:@YDIRECTORY_PATH@G"
@@ -5880,8 +5885,9 @@ static bool ParseGoogleTestFlag(const char* const arg) {
       ParseStringFlag(arg, kStreamResultToFlag,
                       &GTEST_FLAG(stream_result_to)) ||
       ParseBoolFlag(arg, kThrowOnFailureFlag,
-                    &GTEST_FLAG(throw_on_failure));
-      ParseBoolFlag(arg, kShowSkippedFlag, &GTEST_FLAG(show_skipped));
+                    &GTEST_FLAG(throw_on_failure)) ||
+      ParseBoolFlag(arg, kShowSkipsFlag, 
+             &GTEST_FLAG(show_skips));
 }
 
 #if GTEST_USE_OWN_FLAGFILE_FLAG_
