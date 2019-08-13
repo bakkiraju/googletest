@@ -3158,8 +3158,10 @@ void PrettyUnitTestResultPrinter::OnTestIterationStart(
 
   ColoredPrintf(COLOR_YELLOW,  "[==========] ");
   ColoredPrintf(COLOR_YELLOW,
-              "Note: Suites not included in profile json cannot be run "
-              "(use --gtest_show_skips along with --gtest_list_tests to view skipped suites).\n");  
+              "Note: Suites not included in diag_profile's tests.json will not run.\n");
+  ColoredPrintf(COLOR_YELLOW,  "[==========] ");
+  ColoredPrintf(COLOR_YELLOW,            
+              "Note: Use --gtest_show_skips with --gtest_list_tests to view skipped suites.\n");  
 
   fflush(stdout);
 }
@@ -3211,7 +3213,7 @@ void PrettyUnitTestResultPrinter::OnTestPartResult(
 void PrettyUnitTestResultPrinter::OnTestEnd(const TestInfo& test_info) {
   if (test_info.result()->Passed()) {
     ColoredPrintf(COLOR_GREEN, "[       OK ] ");
-  } else if (test_info.result()->Skipped() && GTEST_FLAG(show_skips)) {
+  } else if (test_info.result()->Skipped()) {
     ColoredPrintf(COLOR_GREEN, "[  SKIPPED ] ");
   } else {
     ColoredPrintf(COLOR_RED, "[  FAILED  ] ");
@@ -3274,8 +3276,6 @@ void PrettyUnitTestResultPrinter::PrintFailedTests(const UnitTest& unit_test) {
 
 // Internal helper for printing the list of skipped tests.
 void PrettyUnitTestResultPrinter::PrintSkippedTests(const UnitTest& unit_test) {
-  if (not GTEST_FLAG(show_skips)) {printf("Bot prinitng skipped tests\n"); return;}
-
   const int skipped_test_count = unit_test.skipped_test_count();
   if (skipped_test_count == 0) {
     return;
@@ -3313,7 +3313,7 @@ void PrettyUnitTestResultPrinter::OnTestIterationEnd(const UnitTest& unit_test,
   printf("%s.\n", FormatTestCount(unit_test.successful_test_count()).c_str());
 
   const int skipped_test_count = unit_test.skipped_test_count();
-  if (skipped_test_count > 0 && GTEST_FLAG(show_skips)) {
+  if (skipped_test_count > 0) {
     ColoredPrintf(COLOR_GREEN, "[  SKIPPED ] ");
     printf("%s, listed below:\n", FormatTestCount(skipped_test_count).c_str());
     PrintSkippedTests(unit_test);
@@ -5424,7 +5424,7 @@ int UnitTestImpl::FilterTests(ReactionToSharding shard_tests) {
   for (auto* test_suite : test_suites_) {
     const std::string& test_suite_name = test_suite->name();
 
-    if (test_suite->isSkipped() && !GTEST_FLAG(show_skips)) { continue;}
+    if (test_suite->isSkipped() && not GTEST_FLAG(show_skips)) { continue;}
 
     test_suite->set_should_run(false);
 
@@ -5805,6 +5805,8 @@ static const char kColorEncodedHelpMessage[] =
 "  @G--" GTEST_FLAG_PREFIX_ "list_tests@D\n"
 "      List the names of all tests instead of running them. The name of\n"
 "      TEST(Foo, Bar) is \"Foo.Bar\".\n"
+"  @G--" GTEST_FLAG_PREFIX_ "show_skips@D\n"
+"      Show skipped test suites.Must be used in tandem with " GTEST_FLAG_PREFIX_ " list_tests option.\n"
 "  @G--" GTEST_FLAG_PREFIX_ "filter=@YPOSTIVE_PATTERNS"
     "[@G-@YNEGATIVE_PATTERNS]@D\n"
 "      Run only the tests whose name matches one of the positive patterns but\n"
@@ -5825,8 +5827,6 @@ static const char kColorEncodedHelpMessage[] =
 "Test Output:\n"
 "  @G--" GTEST_FLAG_PREFIX_ "color=@Y(@Gyes@Y|@Gno@Y|@Gauto@Y)@D\n"
 "      Enable/disable colored output. The default is @Gauto@D.\n"
-"  @G--" GTEST_FLAG_PREFIX_ "show_skips\n"
-"      Show/Hide skipped tests in output. Skipped tests are hidden by default.\n"
 "  -@G-" GTEST_FLAG_PREFIX_ "print_time=0@D\n"
 "      Don't print the elapsed time of each test.\n"
 "  @G--" GTEST_FLAG_PREFIX_ "output=@Y(@Gjson@Y|@Gxml@Y)[@G:@YDIRECTORY_PATH@G"
