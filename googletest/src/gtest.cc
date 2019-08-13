@@ -217,7 +217,7 @@ GTEST_DEFINE_bool_(
 GTEST_DEFINE_bool_(
     show_skips,
     internal::BoolFromGTestEnv("show_skips", false),
-    "Show output of skipped tests in addition to the tests normally being run.");
+    "Show tests suites that got skipped, use in tandem with --gtest_list_tests.");
 
 GTEST_DEFINE_bool_(
     break_on_failure,
@@ -3155,8 +3155,12 @@ void PrettyUnitTestResultPrinter::OnTestIterationStart(
   printf("Available %s from %s.\n",
          FormatTestCount(unit_test.test_to_run_count()).c_str(),
          FormatTestSuiteCount(unit_test.test_suite_to_run_count()).c_str());
+
   ColoredPrintf(COLOR_YELLOW,  "[==========] ");
-  printf("Note: Suites not included in profile json skip and do not show in output by default (use --gtest_show_skips to see skips).\n");  
+  ColoredPrintf(COLOR_YELLOW,
+              "Note: Suites not included in profile json cannot be run "
+              "(use --gtest_show_skips along with --gtest_list_tests to view skipped suites).\n");  
+
   fflush(stdout);
 }
 
@@ -5418,8 +5422,10 @@ int UnitTestImpl::FilterTests(ReactionToSharding shard_tests) {
   int num_runnable_tests = 0;
   int num_selected_tests = 0;
   for (auto* test_suite : test_suites_) {
-    if (test_suite->isSkipped()) continue;
     const std::string& test_suite_name = test_suite->name();
+
+    if (test_suite->isSkipped() && !GTEST_FLAG(show_skips)) { continue;}
+
     test_suite->set_should_run(false);
 
     for (size_t j = 0; j < test_suite->test_info_list().size(); j++) {
