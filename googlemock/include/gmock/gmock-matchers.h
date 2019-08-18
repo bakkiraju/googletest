@@ -58,9 +58,16 @@
 #include "gmock/internal/gmock-port.h"
 #include "gtest/gtest.h"
 
+// MSVC warning C5046 is new as of VS2017 version 15.8.
+#if defined(_MSC_VER) && _MSC_VER >= 1915
+#define GMOCK_MAYBE_5046_ 5046
+#else
+#define GMOCK_MAYBE_5046_
+#endif
+
 GTEST_DISABLE_MSC_WARNINGS_PUSH_(
-    4251 5046 /* class A needs to have dll-interface to be used by clients of
-                 class B */
+    4251 GMOCK_MAYBE_5046_ /* class A needs to have dll-interface to be used by
+                              clients of class B */
     /* Symbol involving type with internal linkage not defined */)
 
 namespace testing {
@@ -354,7 +361,7 @@ template <size_t N>
 class TuplePrefix {
  public:
   // TuplePrefix<N>::Matches(matcher_tuple, value_tuple) returns true
-  // iff the first N fields of matcher_tuple matches the first N
+  // if the first N fields of matcher_tuple matches the first N
   // fields of value_tuple, respectively.
   template <typename MatcherTuple, typename ValueTuple>
   static bool Matches(const MatcherTuple& matcher_tuple,
@@ -413,7 +420,7 @@ class TuplePrefix<0> {
                                      ::std::ostream* /* os */) {}
 };
 
-// TupleMatches(matcher_tuple, value_tuple) returns true iff all
+// TupleMatches(matcher_tuple, value_tuple) returns true if all
 // matchers in matcher_tuple match the corresponding fields in
 // value_tuple.  It is a compiler error if matcher_tuple and
 // value_tuple have different number of fields or incompatible field
@@ -661,7 +668,7 @@ class StrEqualityMatcher {
                        MatchResultListener* listener) const {
     // This should fail to compile if absl::string_view is used with wide
     // strings.
-    const StringType& str = string(s);
+    const StringType& str = std::string(s);
     return MatchAndExplain(str, listener);
   }
 #endif  // GTEST_HAS_ABSL
@@ -731,7 +738,7 @@ class HasSubstrMatcher {
                        MatchResultListener* listener) const {
     // This should fail to compile if absl::string_view is used with wide
     // strings.
-    const StringType& str = string(s);
+    const StringType& str = std::string(s);
     return MatchAndExplain(str, listener);
   }
 #endif  // GTEST_HAS_ABSL
@@ -788,7 +795,7 @@ class StartsWithMatcher {
                        MatchResultListener* listener) const {
     // This should fail to compile if absl::string_view is used with wide
     // strings.
-    const StringType& str = string(s);
+    const StringType& str = std::string(s);
     return MatchAndExplain(str, listener);
   }
 #endif  // GTEST_HAS_ABSL
@@ -844,7 +851,7 @@ class EndsWithMatcher {
                        MatchResultListener* listener) const {
     // This should fail to compile if absl::string_view is used with wide
     // strings.
-    const StringType& str = string(s);
+    const StringType& str = std::string(s);
     return MatchAndExplain(str, listener);
   }
 #endif  // GTEST_HAS_ABSL
@@ -2527,7 +2534,7 @@ class KeyMatcherImpl : public MatcherInterface<PairType> {
           testing::SafeMatcherCast<const KeyType&>(inner_matcher)) {
   }
 
-  // Returns true iff 'key_value.first' (the key) matches the inner matcher.
+  // Returns true if 'key_value.first' (the key) matches the inner matcher.
   bool MatchAndExplain(PairType key_value,
                        MatchResultListener* listener) const override {
     StringMatchResultListener inner_listener;
@@ -2609,7 +2616,7 @@ class PairMatcherImpl : public MatcherInterface<PairType> {
     second_matcher_.DescribeNegationTo(os);
   }
 
-  // Returns true iff 'a_pair.first' matches first_matcher and 'a_pair.second'
+  // Returns true if 'a_pair.first' matches first_matcher and 'a_pair.second'
   // matches second_matcher.
   bool MatchAndExplain(PairType a_pair,
                        MatchResultListener* listener) const override {
@@ -3145,7 +3152,7 @@ class ElementsAreArrayMatcher {
 
 // Given a 2-tuple matcher tm of type Tuple2Matcher and a value second
 // of type Second, BoundSecondMatcher<Tuple2Matcher, Second>(tm,
-// second) is a polymorphic matcher that matches a value x iff tm
+// second) is a polymorphic matcher that matches a value x if tm
 // matches tuple (x, second).  Useful for implementing
 // UnorderedPointwise() in terms of UnorderedElementsAreArray().
 //
@@ -3210,7 +3217,7 @@ class BoundSecondMatcher {
 
 // Given a 2-tuple matcher tm and a value second,
 // MatcherBindSecond(tm, second) returns a matcher that matches a
-// value x iff tm matches tuple (x, second).  Useful for implementing
+// value x if tm matches tuple (x, second).  Useful for implementing
 // UnorderedPointwise() in terms of UnorderedElementsAreArray().
 template <typename Tuple2Matcher, typename Second>
 BoundSecondMatcher<Tuple2Matcher, Second> MatcherBindSecond(
@@ -3703,7 +3710,7 @@ WhenDynamicCastTo(const Matcher<To>& inner_matcher) {
 // Creates a matcher that matches an object whose given field matches
 // 'matcher'.  For example,
 //   Field(&Foo::number, Ge(5))
-// matches a Foo object x iff x.number >= 5.
+// matches a Foo object x if x.number >= 5.
 template <typename Class, typename FieldType, typename FieldMatcher>
 inline PolymorphicMatcher<
   internal::FieldMatcher<Class, FieldType> > Field(
@@ -3730,7 +3737,7 @@ inline PolymorphicMatcher<internal::FieldMatcher<Class, FieldType> > Field(
 // Creates a matcher that matches an object whose given property
 // matches 'matcher'.  For example,
 //   Property(&Foo::str, StartsWith("hi"))
-// matches a Foo object x iff x.str() starts with "hi".
+// matches a Foo object x if x.str() starts with "hi".
 template <typename Class, typename PropertyType, typename PropertyMatcher>
 inline PolymorphicMatcher<internal::PropertyMatcher<
     Class, PropertyType, PropertyType (Class::*)() const> >
@@ -3785,11 +3792,11 @@ Property(const std::string& property_name,
           property_name, property, MatcherCast<const PropertyType&>(matcher)));
 }
 
-// Creates a matcher that matches an object iff the result of applying
+// Creates a matcher that matches an object if the result of applying
 // a callable to x matches 'matcher'.
 // For example,
 //   ResultOf(f, StartsWith("hi"))
-// matches a Foo object x iff f(x) starts with "hi".
+// matches a Foo object x if f(x) starts with "hi".
 // `callable` parameter can be a function, function pointer, or a functor. It is
 // required to keep no state affecting the results of the calls on it and make
 // no assumptions about how many calls will be made. Any state it keeps must be
@@ -3852,7 +3859,7 @@ inline PolymorphicMatcher<internal::EndsWithMatcher<std::string> > EndsWith(
   return MakePolymorphicMatcher(internal::EndsWithMatcher<std::string>(suffix));
 }
 
-#if GTEST_HAS_GLOBAL_WSTRING || GTEST_HAS_STD_WSTRING
+#if GTEST_HAS_STD_WSTRING
 // Wide string matchers.
 
 // Matches a string equal to str.
@@ -3905,7 +3912,7 @@ inline PolymorphicMatcher<internal::EndsWithMatcher<std::wstring> > EndsWith(
       internal::EndsWithMatcher<std::wstring>(suffix));
 }
 
-#endif  // GTEST_HAS_GLOBAL_WSTRING || GTEST_HAS_STD_WSTRING
+#endif  // GTEST_HAS_STD_WSTRING
 
 // Creates a polymorphic matcher that matches a 2-tuple where the
 // first field == the second field.
@@ -4338,7 +4345,7 @@ inline internal::MatcherAsPredicate<M> Matches(M matcher) {
   return internal::MatcherAsPredicate<M>(matcher);
 }
 
-// Returns true iff the value matches the matcher.
+// Returns true if the value matches the matcher.
 template <typename T, typename M>
 inline bool Value(const T& value, M matcher) {
   return testing::Matches(matcher)(value);
@@ -4544,7 +4551,7 @@ PolymorphicMatcher<internal::variant_matcher::VariantMatcher<T> > VariantWith(
 
 // These macros allow using matchers to check values in Google Test
 // tests.  ASSERT_THAT(value, matcher) and EXPECT_THAT(value, matcher)
-// succeed iff the value matches the matcher.  If the assertion fails,
+// succeed if the value matches the matcher.  If the assertion fails,
 // the value and the description of the matcher will be printed.
 #define ASSERT_THAT(value, matcher) ASSERT_PRED_FORMAT1(\
     ::testing::internal::MakePredicateFormatterFromMatcher(matcher), value)

@@ -99,7 +99,7 @@ struct BuiltInDefaultValueGetter<T, false> {
 template <typename T>
 class BuiltInDefaultValue {
  public:
-  // This function returns true iff type T has a built-in default value.
+  // This function returns true if type T has a built-in default value.
   static bool Exists() {
     return ::std::is_default_constructible<T>::value;
   }
@@ -139,9 +139,6 @@ class BuiltInDefaultValue<T*> {
   }
 
 GMOCK_DEFINE_DEFAULT_ACTION_FOR_RETURN_TYPE_(void, );  // NOLINT
-#if GTEST_HAS_GLOBAL_STRING
-GMOCK_DEFINE_DEFAULT_ACTION_FOR_RETURN_TYPE_(::string, "");
-#endif  // GTEST_HAS_GLOBAL_STRING
 GMOCK_DEFINE_DEFAULT_ACTION_FOR_RETURN_TYPE_(::std::string, "");
 GMOCK_DEFINE_DEFAULT_ACTION_FOR_RETURN_TYPE_(bool, false);
 GMOCK_DEFINE_DEFAULT_ACTION_FOR_RETURN_TYPE_(unsigned char, '\0');
@@ -211,7 +208,7 @@ class DefaultValue {
     producer_ = nullptr;
   }
 
-  // Returns true iff the user has set the default value for type T.
+  // Returns true if the user has set the default value for type T.
   static bool IsSet() { return producer_ != nullptr; }
 
   // Returns true if T has a default return value set by the user or there
@@ -272,7 +269,7 @@ class DefaultValue<T&> {
   // Unsets the default value for type T&.
   static void Clear() { address_ = nullptr; }
 
-  // Returns true iff the user has set the default value for type T&.
+  // Returns true if the user has set the default value for type T&.
   static bool IsSet() { return address_ != nullptr; }
 
   // Returns true if T has a default return value set by the user or there
@@ -378,7 +375,7 @@ class Action {
   template <typename Func>
   explicit Action(const Action<Func>& action) : fun_(action.fun_) {}
 
-  // Returns true iff this is the DoDefault() action.
+  // Returns true if this is the DoDefault() action.
   bool IsDoDefault() const { return fun_ == nullptr; }
 
   // Performs the action.  Note that this method is const even though
@@ -398,7 +395,7 @@ class Action {
   template <typename G>
   friend class Action;
 
-  // fun_ is an empty function iff this is the DoDefault() action.
+  // fun_ is an empty function if this is the DoDefault() action.
   ::std::function<F> fun_;
 };
 
@@ -772,49 +769,15 @@ class SetErrnoAndReturnAction {
 #endif  // !GTEST_OS_WINDOWS_MOBILE
 
 // Implements the SetArgumentPointee<N>(x) action for any function
-// whose N-th argument (0-based) is a pointer to x's type.  The
-// template parameter kIsProto is true iff type A is ProtocolMessage,
-// proto2::Message, or a sub-class of those.
-template <size_t N, typename A, bool kIsProto>
-class SetArgumentPointeeAction {
- public:
-  // Constructs an action that sets the variable pointed to by the
-  // N-th function argument to 'value'.
-  explicit SetArgumentPointeeAction(const A& value) : value_(value) {}
+// whose N-th argument (0-based) is a pointer to x's type.
+template <size_t N, typename A, typename = void>
+struct SetArgumentPointeeAction {
+  A value;
 
-  template <typename Result, typename ArgumentTuple>
-  void Perform(const ArgumentTuple& args) const {
-    CompileAssertTypesEqual<void, Result>();
-    *::std::get<N>(args) = value_;
+  template <typename... Args>
+  void operator()(const Args&... args) const {
+    *::std::get<N>(std::tie(args...)) = value;
   }
-
- private:
-  const A value_;
-
-  GTEST_DISALLOW_ASSIGN_(SetArgumentPointeeAction);
-};
-
-template <size_t N, typename Proto>
-class SetArgumentPointeeAction<N, Proto, true> {
- public:
-  // Constructs an action that sets the variable pointed to by the
-  // N-th function argument to 'proto'.  Both ProtocolMessage and
-  // proto2::Message have the CopyFrom() method, so the same
-  // implementation works for both.
-  explicit SetArgumentPointeeAction(const Proto& proto) : proto_(new Proto) {
-    proto_->CopyFrom(proto);
-  }
-
-  template <typename Result, typename ArgumentTuple>
-  void Perform(const ArgumentTuple& args) const {
-    CompileAssertTypesEqual<void, Result>();
-    ::std::get<N>(args)->CopyFrom(*proto_);
-  }
-
- private:
-  const std::shared_ptr<Proto> proto_;
-
-  GTEST_DISALLOW_ASSIGN_(SetArgumentPointeeAction);
 };
 
 // Implements the Invoke(object_ptr, &Class::Method) action.
@@ -1083,38 +1046,14 @@ inline internal::DoDefaultAction DoDefault() {
 // Creates an action that sets the variable pointed by the N-th
 // (0-based) function argument to 'value'.
 template <size_t N, typename T>
-PolymorphicAction<
-  internal::SetArgumentPointeeAction<
-    N, T, internal::IsAProtocolMessage<T>::value> >
-SetArgPointee(const T& x) {
-  return MakePolymorphicAction(internal::SetArgumentPointeeAction<
-      N, T, internal::IsAProtocolMessage<T>::value>(x));
-}
-
-template <size_t N>
-PolymorphicAction<
-  internal::SetArgumentPointeeAction<N, const char*, false> >
-SetArgPointee(const char* p) {
-  return MakePolymorphicAction(internal::SetArgumentPointeeAction<
-      N, const char*, false>(p));
-}
-
-template <size_t N>
-PolymorphicAction<
-  internal::SetArgumentPointeeAction<N, const wchar_t*, false> >
-SetArgPointee(const wchar_t* p) {
-  return MakePolymorphicAction(internal::SetArgumentPointeeAction<
-      N, const wchar_t*, false>(p));
+internal::SetArgumentPointeeAction<N, T> SetArgPointee(T x) {
+  return {std::move(x)};
 }
 
 // The following version is DEPRECATED.
 template <size_t N, typename T>
-PolymorphicAction<
-  internal::SetArgumentPointeeAction<
-    N, T, internal::IsAProtocolMessage<T>::value> >
-SetArgumentPointee(const T& x) {
-  return MakePolymorphicAction(internal::SetArgumentPointeeAction<
-      N, T, internal::IsAProtocolMessage<T>::value>(x));
+internal::SetArgumentPointeeAction<N, T> SetArgumentPointee(T x) {
+  return {std::move(x)};
 }
 
 // Creates an action that sets a pointer referent to a given value.
