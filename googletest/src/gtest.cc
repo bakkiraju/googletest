@@ -217,7 +217,7 @@ GTEST_DEFINE_bool_(
 GTEST_DEFINE_bool_(
     show_skips,
     internal::BoolFromGTestEnv("show_skips", false),
-    "Show tests suites that got skipped, use in tandem with --gtest_list_tests.");
+    "Show tests suites that got skipped.");
 
 GTEST_DEFINE_bool_(
     break_on_failure,
@@ -5806,7 +5806,7 @@ static const char kColorEncodedHelpMessage[] =
 "      List the names of all tests instead of running them. The name of\n"
 "      TEST(Foo, Bar) is \"Foo.Bar\".\n"
 "  @G--" GTEST_FLAG_PREFIX_ "show_skips@D\n"
-"      Show skipped test suites.Must be used in tandem with " GTEST_FLAG_PREFIX_ " list_tests option.\n"
+"      Show skipped test suites.Must be used in tandem with " GTEST_FLAG_PREFIX_ "list_tests option.\n"
 "  @G--" GTEST_FLAG_PREFIX_ "filter=@YPOSTIVE_PATTERNS"
     "[@G-@YNEGATIVE_PATTERNS]@D\n"
 "      Run only the tests whose name matches one of the positive patterns but\n"
